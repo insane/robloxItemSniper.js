@@ -43,16 +43,24 @@ async function purchaseProduct(productId, expectedCurrency, expectedPrice, expec
 
 async function checkItems() {
     for (const itemId of config.items) {
-        const itemDetails = await fetchItemDetails(itemId);
-        console.log(itemDetails.name + " isn't purchasable, retrying..");
-        if (itemDetails.isPurchasable) {
-            const expectedPrice = itemDetails.premiumPricing?.premiumPriceInRobux || itemDetails.price;
-            console.log(`${itemDetails.name} has been put on sale for ${expectedPrice} R$, attempting purchase..`);
-            const purchaseAttempt = await purchaseProduct(itemDetails.productId, 1, expectedPrice, itemDetails.creatorTargetId);
-            if (purchaseAttempt.purchased) {
-                console.log(`Successfully purchased ${itemDetails.name} for ${expectedPrice} R$!`);
-                config.items.delete(itemId);
+        try {
+            const itemDetails = await fetchItemDetails(itemId);
+            console.log(itemDetails.name + " isn't purchasable, retrying..");
+            if (itemDetails.isPurchasable) {
+                const expectedPrice = itemDetails.premiumPricing?.premiumPriceInRobux || itemDetails.price;
+                console.log(`${itemDetails.name} has been put on sale for ${expectedPrice} R$, attempting purchase..`);
+                try {
+                    const purchaseAttempt = await purchaseProduct(itemDetails.productId, 1, expectedPrice, itemDetails.creatorTargetId);
+                    if (purchaseAttempt.purchased) {
+                        console.log(`Successfully purchased ${itemDetails.name} for ${expectedPrice} R$!`);
+                        config.items.delete(itemId);
+                    }
+                } catch (purchaseError) {
+                    console.error(`Error attempting to purchase ${itemDetails.name}:`, purchaseError);
+                }
             }
+        } catch (detailsError) {
+            console.error(`Error fetching details for item ${itemId}:`, detailsError);
         }
     }
     setTimeout(checkItems, 15000);
