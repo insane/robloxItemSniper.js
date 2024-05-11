@@ -1,5 +1,6 @@
 const config = {
-    items: new Set([12109151762, 15028653255, 15260879321, 15260882635, 15260902601, 15266946314])
+    items: new Set([17434098307]),
+    minPrice: 50000
 };
 
 let csrfToken = "";
@@ -48,15 +49,19 @@ async function checkItems() {
             console.log(itemDetails.name + " isn't purchasable, retrying..");
             if (itemDetails.isPurchasable) {
                 const expectedPrice = itemDetails.premiumPricing?.premiumPriceInRobux || itemDetails.price;
-                console.log(`${itemDetails.name} has been put on sale for ${expectedPrice} R$, attempting purchase..`);
-                try {
-                    const purchaseAttempt = await purchaseProduct(itemDetails.productId, 1, expectedPrice, itemDetails.creatorTargetId);
-                    if (purchaseAttempt.purchased) {
-                        console.log(`Successfully purchased ${itemDetails.name} for ${expectedPrice} R$!`);
-                        config.items.delete(itemId);
+                if (expectedPrice >= config.minPrice) {
+                    console.log(`${itemDetails.name} has been put on sale for ${expectedPrice} R$, attempting purchase..`);
+                    try {
+                        const purchaseAttempt = await purchaseProduct(itemDetails.productId, 1, expectedPrice, itemDetails.creatorTargetId);
+                        if (purchaseAttempt.purchased) {
+                            console.log(`Successfully purchased ${itemDetails.name} for ${expectedPrice} R$!`);
+                            config.items.delete(itemId);
+                        }
+                    } catch (purchaseError) {
+                        console.error(`Error attempting to purchase ${itemDetails.name}:`, purchaseError);
                     }
-                } catch (purchaseError) {
-                    console.error(`Error attempting to purchase ${itemDetails.name}:`, purchaseError);
+                } else {
+                    console.log(`${itemDetails.name} is below the minimum price of ${config.minPrice} R$`);
                 }
             }
         } catch (detailsError) {
@@ -65,6 +70,5 @@ async function checkItems() {
     }
     setTimeout(checkItems, 15000);
 }
-
 
 checkItems();
