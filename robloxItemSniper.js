@@ -1,6 +1,7 @@
 const config = {
-    items: new Set([12109151762, 15028653255, 15260879321, 15260882635, 15260902601, 15266946314]),
-    minPrice: 100,
+    items: new Set([16952003705]),
+    minPrice: 50,
+    maxPrice: 1000,
     purchaseAmount: 10,
     delayPerPurchase: 2000
 };
@@ -51,8 +52,7 @@ async function checkItems() {
 
         try {
             const itemDetails = await fetchItemDetails(itemId);
-            console.log(itemDetails.name + " isn't purchasable, retrying..");
-            if (itemDetails.isPurchasable && itemDetails.price >= config.minPrice) {
+            if (itemDetails.isPurchasable && itemDetails.price >= config.minPrice && itemDetails.price <= config.maxPrice) {
                 console.log(`${itemDetails.name} has been put on sale for ${itemDetails.price} R$, attempting purchase..`);
                 try {
                     const purchaseAttempt = await purchaseProduct(itemDetails.productId, 1, itemDetails.price, itemDetails.creatorTargetId);
@@ -61,14 +61,14 @@ async function checkItems() {
                         config.items.delete(itemId);
                         purchaseCounter++;
                         if (purchaseCounter < config.purchaseAmount) {
-                            await new Promise(resolve => setTimeout(resolve, config.delayPerPurchase));
+                            await new Promise(resolve => setTimeout(resolve, config.delayPerPurchase)); // Delay next purchase
                         }
                     }
                 } catch (purchaseError) {
                     console.error(`Error attempting to purchase ${itemDetails.name}:`, purchaseError);
                 }
             } else {
-                console.log(`${itemDetails.name} is below the minimum price of ${config.minPrice} R$ or is not purchasable.`);
+                console.log(`${itemDetails.name} is not within the price range of ${config.minPrice} R$ to ${config.maxPrice} R$ or is not purchasable.`);
             }
         } catch (detailsError) {
             console.error(`Error fetching details for item ${itemId}:`, detailsError);
