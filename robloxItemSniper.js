@@ -1,6 +1,8 @@
 const config = {
-    items: new Set([17434098307]),
-    minPrice: 50000
+    items: new Set([12109151762, 15028653255, 15260879321, 15260882635, 15260902601, 15266946314]),
+    minPrice: 100,
+    purchaseAmount: 10,
+    delayPerPurchase: 2000
 };
 
 let csrfToken = "";
@@ -43,32 +45,36 @@ async function purchaseProduct(productId, expectedCurrency, expectedPrice, expec
 }
 
 async function checkItems() {
+    let purchaseCounter = 0;
     for (const itemId of config.items) {
+        if (purchaseCounter >= config.purchaseAmount) break;
+
         try {
             const itemDetails = await fetchItemDetails(itemId);
             console.log(itemDetails.name + " isn't purchasable, retrying..");
-            if (itemDetails.isPurchasable) {
-                const expectedPrice = itemDetails.premiumPricing?.premiumPriceInRobux || itemDetails.price;
-                if (expectedPrice >= config.minPrice) {
-                    console.log(`${itemDetails.name} has been put on sale for ${expectedPrice} R$, attempting purchase..`);
-                    try {
-                        const purchaseAttempt = await purchaseProduct(itemDetails.productId, 1, expectedPrice, itemDetails.creatorTargetId);
-                        if (purchaseAttempt.purchased) {
-                            console.log(`Successfully purchased ${itemDetails.name} for ${expectedPrice} R$!`);
-                            config.items.delete(itemId);
+            if (itemDetails.isPurchasable && itemDetails.price >= config.minPrice) {
+                console.log(`${itemDetails.name} has been put on sale for ${itemDetails.price} R$, attempting purchase..`);
+                try {
+                    const purchaseAttempt = await purchaseProduct(itemDetails.productId, 1, itemDetails.price, itemDetails.creatorTargetId);
+                    if (purchaseAttempt.purchased) {
+                        console.log(`Successfully purchased ${itemDetails.name} for ${itemDetails.price} R$!`);
+                        config.items.delete(itemId);
+                        purchaseCounter++;
+                        if (purchaseCounter < config.purchaseAmount) {
+                            await new Promise(resolve => setTimeout(resolve, config.delayPerPurchase));
                         }
-                    } catch (purchaseError) {
-                        console.error(`Error attempting to purchase ${itemDetails.name}:`, purchaseError);
                     }
-                } else {
-                    console.log(`${itemDetails.name} is below the minimum price of ${config.minPrice} R$`);
+                } catch (purchaseError) {
+                    console.error(`Error attempting to purchase ${itemDetails.name}:`, purchaseError);
                 }
+            } else {
+                console.log(`${itemDetails.name} is below the minimum price of ${config.minPrice} R$ or is not purchasable.`);
             }
         } catch (detailsError) {
             console.error(`Error fetching details for item ${itemId}:`, detailsError);
         }
     }
-    setTimeout(checkItems, 15000);
+    setTimeout(checkItems, 5000);
 }
 
 checkItems();
